@@ -1,0 +1,5 @@
+theme: jekyll-theme-dinky
+title: TFOD inference generator
+description: A class to run inference using TFOD in a pythonic way
+show_downloads: false
+google_analytics: UA-239643393-2
