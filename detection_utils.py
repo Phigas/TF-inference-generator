@@ -12,13 +12,17 @@ from data_readers import ImageReader, TfrecordReader
 
             
 class LabelMapUtil:
+    """Correctly parsing .pbtxt files is not easy. 
+    
+    This is why the files need to follow the defined formatting to work.
+    """
+    
     def parse_label_map(self, label_map_path: str) -> dict[str, int]:
         """Reads the label map protobuf text file and returns as dict
 
-        Raises:
-            Exception: Raised if label map file incorrectly formatted
-            Exception: Raised if label map file incorrectly formatted
-
+        Args:
+            label_map_path (str): path to the label map
+        
         Returns:
             dict[str, int]: Dict mapping item_name to item_id
         """
@@ -57,7 +61,7 @@ class LabelMapUtil:
 
         Args:
             label_map_path (str): Path to the lable map file
-            items (dict[str, int]): Dict mappint the label name to the label id
+            items (dict[str, int]): Dict mapping the label name to the label id
         """
         
         assert isinstance(label_map_path, str), 'Label map path needs to be string'
@@ -113,7 +117,7 @@ class LabelMapUtil:
 class Detector:
     """This class contains all the code to load a model and evaluate it on inputs.
     
-    It can evaluate on .record files on files in the Pascal Voc format and multiple Voc style files.
+    It can evaluate on .record files, one file in the Pascal Voc format and multiple Voc style files.
     """
     
     def __init__(self, model_dir: str, checkpoint_nr: int = -1) -> None:
@@ -175,14 +179,11 @@ class Detector:
 
         return detection_model, int(global_step)
     
-    def load_iterable_dataset(self, input_path: str = 'default') -> list[tuple[list[BoundBox], Image]]:
+    def load_iterable_dataset(self, input_path: str = 'default') -> None:
         """Automatically detects if input is a record file or Pascal Voc files.
 
         Args:
             input_path (str): Path to the items to be evaluated
-
-        Returns:
-            list[tuple[list[BoundBox], Image]]: list with the predictions and images. 'default' loads file from config. Defaults to 'default'
         """
         
         assert isinstance(input_path, str), 'input_path needs to be str'
@@ -320,15 +321,25 @@ class Detector:
         return return_boxes
     
     def __iter__(self):
+        """Since we iterate over ourselves return self.
+
+        Returns:
+            Detector: The class itself
+        """
+        
         return self
     
-    def __next__(self):
+    def __next__(self) -> Image:
+        """Loads the next image, runs it through the neural net, does non max suppression on the outputs and returns all data in an Image object.
+
+        Returns:
+            Image: Image object containing ground truth and predictions
+        """
         image = next(self.iterable_dataset)
 
         predictions = self.get_predictions(image)
         predictions = self.non_max_suppression(predictions)
+        # TODO: add threcholding the predicitons and control over the postprocessing options
         
-        return predictions, image
-        
-if __name__ == '__main__':
-    pass
+        image.set_predictions(predictions)
+        return image

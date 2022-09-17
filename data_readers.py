@@ -14,6 +14,7 @@ class TfrecordReader:
     
     To get the dataset iterate over the instance with a for loop or use the next() function.
     """
+    # TODO: add writing functionality
     
     def __init__(self, record_path: str) -> None:
         """Open the dataset and save the iterable because the dataset itself is not needed.
@@ -71,6 +72,8 @@ class TfrecordReader:
             Image: Image with the image and the annotations
         """
         
+        assert isinstance(element, dict), 'element needs to be dict.'
+        
         image_np = tf.io.decode_jpeg(element['image/encoded'].numpy()).numpy()
 
         height = element['image/height'].numpy()
@@ -122,8 +125,16 @@ class TfrecordReader:
 
 class ImageReader:
     def __init__(self, input_path: str, file_extention: str = 'jpg') -> None:
+        """Detects if the input path is a dir or a file and loads all foud data paths.
+
+        Args:
+            input_path (str): Path to the file or folder to load
+            file_extention (str, optional): File extension of the image or images in folder. Case sensitive. Defaults to 'jpg'.
+        """
         
         assert isinstance(input_path, str), 'input path needs to be str'
+        assert isinstance(file_extention, str), 'file extension needs to be str'
+        # TODO: The handling of the files with one file extension is not very elegant
         
         if os.path.isdir(input_path):
             images = glob.glob(input_path + f'/*.{file_extention}')
@@ -155,7 +166,7 @@ class ImageReader:
         img = cv.imread(image_path)
         img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
         image_np = np.array(img)
-        image = Image(image_np)
+        image = Image(image_np, image_path)
         
         return image
     
@@ -192,9 +203,21 @@ class ImageReader:
             image.add_annotation(annotaion)
     
     def __iter__(self):
+        """Retruns the class itself since we want to iterate over itself.
+
+        Returns:
+            ImageReader: The class itself
+        """
+        
         return self
     
-    def __next__(self):
+    def __next__(self) -> Image:
+        """Loads the next image and returns it as an Image instance
+
+        Returns:
+            Image: The next Image
+        """
+        
         image_path = next(self.image_paths)
         
         image = self.preprocess_image(image_path)

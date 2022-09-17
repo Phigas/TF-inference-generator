@@ -127,7 +127,7 @@ class Image:
         
         Args:
             image_np (np.ndarray): numpy array of the image
-            filename (str): filename of the file. Defaults to ''.
+            filename (str, optional): filename of the file. Defaults to ''.
         """
         
         self.set_filename(filename)
@@ -187,6 +187,7 @@ class Image:
         
         return self.__image_np
 
+    # TODO: The entire size feature is currently pretty useless. It may be smart to save normalized boundingboxes instead of pixels
     def set_size(self, annotation_width: int, annotation_height: int) -> None:
         """Saves the size that the annotations were scaled to. This is needed if the image is rescaled to scale the annotations accordingly.
 
@@ -239,16 +240,17 @@ class Image:
         # returned as tuple because ground truth is definitive
         return tuple(self.__annotations)
 
-    def add_prediction(self, bbox: BoundBox) -> None:
-        """Add one bbox to the predictions
+    def set_predictions(self, predictions: list[BoundBox]) -> None:
+        """Set the predictions to the given list
 
         Args:
-            bbox (BoundBox): One prediction BoundBox instance
+            predictions (list[BoundBox]): List with all predictions
         """
         
-        assert isinstance(bbox, BoundBox), 'bbox needs to be an instance of BoundBox'
+        assert isinstance(predictions, list), 'bbox needs to be an instance of BoundBox'
+        assert all(isinstance(x, BoundBox) for x in predictions), 'predictions needs to contain BoundBox objects'
         
-        self.__predictions.append(bbox)
+        self.__predictions = predictions
     
     def get_predictions(self) -> tuple[BoundBox, ...]:
         """Returns the predictions.
@@ -259,23 +261,21 @@ class Image:
         
         return tuple(self.__predictions)
     
-    def draw_annotations(self, predictions: list[BoundBox] = [], show: bool = True, save_name: str = None, show_time: Union[int, float] = 5.0):
+    def draw_annotations(self, show: bool = True, save_name: str = None, show_time: Union[int, float] = 5.0):
         """Draw the annotations and predictions on the image
 
         Args:
-            predictions (list[BoundBox], optional): A list of BoundBoxes to also draw. Defaults to [].
             show (bool, optional): Show the image in a window? Defaults to True.
             save_name (str, optional): Save the image with the given name. Defaults to None.
             show_time (float, optional): Time in seconds to show the image. Set to 0 for keypress wait. Defaults to 5.
         """
         
-        assert isinstance(predictions, list) # bad since other similar datatypes can also work
         assert isinstance(show_time, (int, float)) and show_time >= 0, 'show time needs to be 0 or bigger and float or int'
-        assert all(isinstance(x, BoundBox) for x in predictions), 'The elements in predictions need to be BoundBox instances'
         assert isinstance(show, bool), 'Show needs to be a bool'
         assert isinstance(save_name, str) or save_name == None, 'save_name needs to be string or None'
         image_bgr = cv.cvtColor(self.__image_np, cv.COLOR_RGB2BGR)
 
+        # TODO: set as function of image size
         RECTANGLE_WIDTH = 1
         FONT_SIZE = .5
         FONT_THICKNESS = 1
@@ -294,7 +294,7 @@ class Image:
 
         # draw predictions (if any)
         predictions_colour = (0, 0, 255)
-        for prediction in predictions:
+        for prediction in self.__predictions:
             xmin, ymin, xmax, ymax = prediction.get_box()
             image_bgr = cv.rectangle(image_bgr, (xmin, ymin), (xmax, ymax), predictions_colour, RECTANGLE_WIDTH)
             string = prediction.get_class() + ' ' + f'{prediction.get_confidence()*100:.0f}'
@@ -306,7 +306,7 @@ class Image:
         if show:
             print('Showing image')
             cv.imshow(save_name, image_bgr)
-            # wait for 10 seconds or keypress
+            # wait for X seconds or keypress
             cv.waitKey(int(1000*show_time))
 
     def __str__(self) -> str:
@@ -316,4 +316,4 @@ class Image:
             str: Description of the image
         """
         
-        return f'Image object with {len(self.__annotations)} annotations and size {self.get_size()}'
+        return f'Image object with {len(self.__annotations)} annotations, {len(self.__predictions)} predictions and size {self.get_size()}'
