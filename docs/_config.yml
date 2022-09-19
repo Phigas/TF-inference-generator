@@ -1,5 +1,5 @@
 theme: jekyll-theme-dinky
-title: TFOD inference generator
-description: A class to run inference using TFOD in a pythonic way
+title: Use TFOD models and datasets in a super easy way
+description: A codebase for loading TFOD models and datasets in a super easy and pythonic way.
 show_downloads: false
 google_analytics: UA-239643393-2
